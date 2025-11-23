@@ -17,7 +17,7 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 @Entity
-@Table(name = "usuario") // Nombre exacto según Anexo 1
+@Table(name = "usuario")
 public class Usuario implements UserDetails {
 
     @Id
@@ -25,7 +25,7 @@ public class Usuario implements UserDetails {
     private Long id;
 
     @Column(nullable = false, unique = true)
-    private String email; // Usaremos email como username
+    private String email; // username para login
 
     @Column(nullable = false)
     private String nombre;
@@ -36,7 +36,16 @@ public class Usuario implements UserDetails {
     @Enumerated(EnumType.STRING)
     private Role role;
 
-    // Métodos requeridos por Spring Security
+    @Column(nullable = false)
+    private Integer edad;
+
+    @Column(nullable = false)
+    private Boolean descuento;
+
+    // ============================
+    // SPRING SECURITY
+    // ============================
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return List.of(new SimpleGrantedAuthority("ROLE_" + role.name()));

@@ -17,44 +17,53 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // Permitir conexión desde Vite React
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
-    private final UsuarioRepository usuarioRepository;
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
-    private final AuthenticationManager authenticationManager;
+        private final UsuarioRepository usuarioRepository;
+        private final PasswordEncoder passwordEncoder;
+        private final JwtService jwtService;
+        private final AuthenticationManager authenticationManager;
 
-    @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
-        // Por defecto registramos como CLIENTE. El admin se crea directo en BD o con
-        // endpoint especial.
-        Usuario user = Usuario.builder()
-                .nombre(request.getNombre())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.CLIENTE) // Rol por defecto
-                .edad(request.getEdad())
-                .descuento(false)
-                .build();
+        @PostMapping("/register")
+        public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 
-        usuarioRepository.save(user);
-        var jwtToken = jwtService.generateToken(user);
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(jwtToken)
-                .role(user.getRole().name())
-                .build());
-    }
+                Usuario user = Usuario.builder()
+                                .nombre(request.getNombre())
+                                .email(request.getEmail())
+                                .password(passwordEncoder.encode(request.getPassword()))
+                                .role(Role.CLIENTE)
+                                .edad(request.getEdad())
+                                .descuento(false)
+                                .build();
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
-        authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword()));
-        var user = usuarioRepository.findByEmail(request.getEmail()).orElseThrow();
-        var jwtToken = jwtService.generateToken(user);
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(jwtToken)
-                .role(user.getRole().name())
-                .build());
-    }
+                usuarioRepository.save(user);
+
+                String jwtToken = jwtService.generateToken(user);
+
+                return ResponseEntity.ok(
+                                AuthResponse.builder()
+                                                .token(jwtToken)
+                                                .role(user.getRole().name())
+                                                .build());
+        }
+
+        @PostMapping("/login")
+        public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+
+                authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(
+                                                request.getEmail(), request.getPassword()));
+
+                Usuario user = usuarioRepository.findByEmail(request.getEmail())
+                                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+                String jwtToken = jwtService.generateToken(user);
+
+                return ResponseEntity.ok(
+                                AuthResponse.builder()
+                                                .token(jwtToken)
+                                                .role(user.getRole().name())
+                                                .build());
+        }
 }
