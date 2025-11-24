@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173") // Redundancia de seguridad OK
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     private final UsuarioRepository usuarioRepository;
@@ -28,18 +28,16 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 
-        // Verificar si el usuario ya existe para evitar errores 500 feos
-        // (Opcional pero recomendado)
-        if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
-             // Puedes lanzar una excepción controlada o dejar que falle, 
-             // pero con CORS arreglado, el frontend recibirá el error correctamente.
-        }
+        // LÓGICA DE ROL:
+        // Si en el JSON viene un rol ("ADMIN", "USER", etc.), lo usa.
+        // Si viene vacío o nulo, asigna CLIENTE por defecto.
+        Role roleAsignado = (request.getRole() != null) ? request.getRole() : Role.CLIENTE;
 
         Usuario user = Usuario.builder()
                 .nombre(request.getNombre())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(Role.CLIENTE)
+                .role(roleAsignado) // Asignamos el rol calculado arriba
                 .edad(request.getEdad())
                 .descuento(false)
                 .build();
