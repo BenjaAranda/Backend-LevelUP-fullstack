@@ -20,13 +20,13 @@ public class ProductoController {
     private final ProductoRepository productoRepository;
     private final CategoriaRepository categoriaRepository;
 
-    // --- Obtener todos los productos ---
+    // --- 1. Obtener todos los productos (Público) ---
     @GetMapping
     public List<Producto> listarProductos() {
         return productoRepository.findAll();
     }
 
-    // --- Obtener un producto por código ---
+    // --- 2. Obtener un producto por código (Público) ---
     @GetMapping("/{codigo}")
     public ResponseEntity<Producto> obtenerProducto(@PathVariable String codigo) {
         return productoRepository.findByCodigo(codigo)
@@ -34,10 +34,17 @@ public class ProductoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    // --- Crear producto (Compatible con tu React) ---
+    // --- 3. Crear producto (Solo Admin debería poder, pero por ahora abierto si
+    // Security lo permite) ---
     @PostMapping
     public ResponseEntity<Producto> crearProducto(@RequestBody ProductoDTO request) {
-        // 1. Buscamos o creamos la categoría basada en el texto que envía el frontend
+
+        // Validación básica
+        if (productoRepository.findByCodigo(request.getCodigo()).isPresent()) {
+            return ResponseEntity.badRequest().build(); // O lanzar excepción personalizada
+        }
+
+        // 1. Buscamos o creamos la categoría basada en el texto
         Categoria categoria = categoriaRepository.findByNombre(request.getCategoria())
                 .orElseGet(() -> {
                     Categoria nueva = new Categoria();
@@ -45,27 +52,27 @@ public class ProductoController {
                     return categoriaRepository.save(nueva);
                 });
 
-        // 2. Creamos el producto real
-        Producto producto = new Producto();
-        producto.setCodigo(request.getCodigo());
-        producto.setNombre(request.getNombre());
-        producto.setImg(request.getImg());
-        producto.setPrecio(request.getPrecio());
-        producto.setStock(request.getStock());
-        producto.setDescripcion(request.getDescripcion());
-        producto.setCategoria(categoria); // Asignamos el objeto categoría
+        // 2. Creamos el objeto Producto
+        Producto producto = Producto.builder()
+                .codigo(request.getCodigo())
+                .nombre(request.getNombre())
+                .imagen(request.getImg()) // Ojo: en tu modelo se llama 'imagen', en tu DTO 'img'
+                .precio(request.getPrecio())
+                .stock(request.getStock())
+                .descripcion(request.getDescripcion())
+                .categoria(categoria)
+                .build();
 
         return ResponseEntity.ok(productoRepository.save(producto));
     }
 
-    // DTO: Clase auxiliar para recibir los datos tal cual los manda tu Frontend
-    // (con categoría string)
+    // --- DTO Auxiliar para recibir el JSON del Frontend ---
     @Data
     public static class ProductoDTO {
         private String codigo;
-        private String img;
+        private String img; // El frontend manda 'img', lo mapeamos a 'imagen' en la entidad
         private String nombre;
-        private String categoria; // Aquí recibimos el texto "Juegos de Mesa"
+        private String categoria; // Texto plano (ej: "Juegos de Mesa")
         private Integer precio;
         private Integer stock;
         private String descripcion;
