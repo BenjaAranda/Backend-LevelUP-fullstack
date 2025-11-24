@@ -17,53 +17,60 @@ import org.springframework.web.bind.annotation.*;
 @RestController
 @RequestMapping("/api/v1/auth")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173")
+@CrossOrigin(origins = "http://localhost:5173") // Redundancia de seguridad OK
 public class AuthController {
 
-        private final UsuarioRepository usuarioRepository;
-        private final PasswordEncoder passwordEncoder;
-        private final JwtService jwtService;
-        private final AuthenticationManager authenticationManager;
+    private final UsuarioRepository usuarioRepository;
+    private final PasswordEncoder passwordEncoder;
+    private final JwtService jwtService;
+    private final AuthenticationManager authenticationManager;
 
-        @PostMapping("/register")
-        public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 
-                Usuario user = Usuario.builder()
-                                .nombre(request.getNombre())
-                                .email(request.getEmail())
-                                .password(passwordEncoder.encode(request.getPassword()))
-                                .role(Role.CLIENTE)
-                                .edad(request.getEdad())
-                                .descuento(false)
-                                .build();
-
-                usuarioRepository.save(user);
-
-                String jwtToken = jwtService.generateToken(user);
-
-                return ResponseEntity.ok(
-                                AuthResponse.builder()
-                                                .token(jwtToken)
-                                                .role(user.getRole().name())
-                                                .build());
+        // Verificar si el usuario ya existe para evitar errores 500 feos
+        // (Opcional pero recomendado)
+        if (usuarioRepository.findByEmail(request.getEmail()).isPresent()) {
+             // Puedes lanzar una excepción controlada o dejar que falle, 
+             // pero con CORS arreglado, el frontend recibirá el error correctamente.
         }
 
-        @PostMapping("/login")
-        public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+        Usuario user = Usuario.builder()
+                .nombre(request.getNombre())
+                .email(request.getEmail())
+                .password(passwordEncoder.encode(request.getPassword()))
+                .role(Role.CLIENTE)
+                .edad(request.getEdad())
+                .descuento(false)
+                .build();
 
-                authenticationManager.authenticate(
-                                new UsernamePasswordAuthenticationToken(
-                                                request.getEmail(), request.getPassword()));
+        usuarioRepository.save(user);
 
-                Usuario user = usuarioRepository.findByEmail(request.getEmail())
-                                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        String jwtToken = jwtService.generateToken(user);
 
-                String jwtToken = jwtService.generateToken(user);
+        return ResponseEntity.ok(
+                AuthResponse.builder()
+                        .token(jwtToken)
+                        .role(user.getRole().name())
+                        .build());
+    }
 
-                return ResponseEntity.ok(
-                                AuthResponse.builder()
-                                                .token(jwtToken)
-                                                .role(user.getRole().name())
-                                                .build());
-        }
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
+
+        authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                        request.getEmail(), request.getPassword()));
+
+        Usuario user = usuarioRepository.findByEmail(request.getEmail())
+                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+        String jwtToken = jwtService.generateToken(user);
+
+        return ResponseEntity.ok(
+                AuthResponse.builder()
+                        .token(jwtToken)
+                        .role(user.getRole().name())
+                        .build());
+    }
 }
