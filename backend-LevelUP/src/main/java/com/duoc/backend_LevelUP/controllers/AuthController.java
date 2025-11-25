@@ -28,22 +28,20 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 
-        // LÓGICA DE ROL:
-        // Si en el JSON viene un rol ("ADMIN", "USER", etc.), lo usa.
-        // Si viene vacío o nulo, asigna CLIENTE por defecto.
         Role roleAsignado = (request.getRole() != null) ? request.getRole() : Role.CLIENTE;
 
         Usuario user = Usuario.builder()
                 .nombre(request.getNombre())
                 .email(request.getEmail())
                 .password(passwordEncoder.encode(request.getPassword()))
-                .role(roleAsignado) // Asignamos el rol calculado arriba
+                .role(roleAsignado)
                 .edad(request.getEdad())
                 .descuento(false)
                 .build();
 
         usuarioRepository.save(user);
 
+        // Al llamar a generateToken, JwtService ahora meterá el rol dentro del token
         String jwtToken = jwtService.generateToken(user);
 
         return ResponseEntity.ok(
