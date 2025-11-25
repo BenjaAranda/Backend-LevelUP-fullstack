@@ -28,6 +28,7 @@ public class AuthController {
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
 
+        // Logica para asignar rol (si no envían nada, es CLIENTE)
         Role roleAsignado = (request.getRole() != null) ? request.getRole() : Role.CLIENTE;
 
         Usuario user = Usuario.builder()
@@ -41,7 +42,7 @@ public class AuthController {
 
         usuarioRepository.save(user);
 
-        // Al llamar a generateToken, JwtService ahora meterá el rol dentro del token
+        // Generamos el token (JwtService se encarga de meter el rol dentro)
         String jwtToken = jwtService.generateToken(user);
 
         return ResponseEntity.ok(

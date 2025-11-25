@@ -26,16 +26,14 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
-                        // 1. RUTAS PÚBLICAS
-                        .requestMatchers("/api/v1/auth/**").permitAll()
+                        .requestMatchers("/api/v1/auth/**").permitAll() // Login y Register
                         .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers(
-                                "/api/v1/productos/**",
+                                "/api/v1/productos/**", // Catálogo visible para todos
                                 "/api/v1/swagger-ui/**",
                                 "/api/v1/v3/api-docs/**",
                                 "/swagger-ui/**",
@@ -43,12 +41,10 @@ public class SecurityConfig {
                                 "/swagger-ui.html"
                         ).permitAll()
 
-                        // 2. RUTAS SOLO PARA ADMIN (AQUÍ ESTABA EL PROBLEMA)
-                        // Asegúrate que tu enum Role tenga el valor ADMIN.
-                        // Si usas authorities, Spring Security compara el string exacto.
-                        .requestMatchers("/api/v1/admin/**").hasAuthority("ADMIN")
+                        // Agregamos "/api/v1/users/**" para que nadie más pueda borrar gente
+                        .requestMatchers("/api/v1/admin/**", "/api/v1/users/**").hasAuthority("ADMIN")
 
-                        // 3. RESTO REQUERIDO
+                        // 3. CUALQUIER OTRA RUTA REQUIERE LOGIN (Usuarios normales)
                         .anyRequest().authenticated())
 
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
