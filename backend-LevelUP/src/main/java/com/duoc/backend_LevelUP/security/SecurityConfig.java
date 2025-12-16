@@ -3,6 +3,7 @@ package com.duoc.backend_LevelUP.security;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod; // Importante para diferenciar GET de POST
 import org.springframework.security.authentication.AuthenticationProvider;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -26,56 +27,66 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-
         http
-            // 1. CONFIGURACIÓN DE CORS
-            // Activa la configuración definida en el bean corsConfigurationSource() de abajo
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth
-                // 2. RUTAS PÚBLICAS (Sin autenticación)
-                // Importante: Cubre tanto login como registro
-                .requestMatchers("/api/v1/auth/**").permitAll()
-                
-                // Permitir preflight requests explícitamente (OPTIONS)
-                .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**").permitAll()
-                
-                // Documentación Swagger y otros recursos públicos
-                .requestMatchers(
-                    "/api/v1/productos/**", // Catálogo público
-                    "/api/v1/swagger-ui/**",
-                    "/api/v1/v3/api-docs/**",
-                    "/swagger-ui/**",
-                    "/v3/api-docs/**",
-                    "/swagger-ui.html"
-                ).permitAll()
-                
-                // 3. TODO LO DEMÁS REQUIERE AUTENTICACIÓN
-                .anyRequest().authenticated())
-            
-            .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth
+                        // ==========================================
+                        // 1. ACCESO PÚBLICO (Nadie necesita login)
+                        // ==========================================
+                        .requestMatchers("/api/v1/auth/**").permitAll() // Login y Registro
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll() // Preflight CORS
+                        .requestMatchers(
+                                "/api/v1/swagger-ui/**",
+                                "/api/v1/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
+                        ).permitAll()
+
+                        // Permitimos VER productos a todo el mundo (invitados incluidos)
+                        .requestMatchers(HttpMethod.GET, "/api/v1/productos/**").permitAll()
+
+                        // ==========================================
+                        // 2. SOLO ADMIN (Seguridad Crítica)
+                        // ==========================================
+                        // Solo el ADMIN puede tocar usuarios (borrar, ver lista, roles)
+                        .requestMatchers("/api/v1/users/**").hasRole("ADMIN")
+
+                        // ==========================================
+                        // 3. ADMIN + VENDEDOR (Gestión de Tienda)
+                        // ==========================================
+                        // Aquí definimos lo que puede hacer el VENDEDOR (y el Admin por supuesto)
+                        // Crear (POST), Actualizar (PUT), Borrar (DELETE) productos
+                        .requestMatchers(HttpMethod.POST, "/api/v1/productos/**").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.PUT, "/api/v1/productos/**").hasAnyRole("ADMIN", "VENDEDOR")
+                        .requestMatchers(HttpMethod.DELETE, "/api/v1/productos/**").hasAnyRole("ADMIN", "VENDEDOR")
+
+                        // Si tienes endpoints de categorías, también van aquí:
+                        .requestMatchers("/api/v1/categorias/**").hasAnyRole("ADMIN", "VENDEDOR")
+
+                        // Gestión de órdenes (Asumiendo que el vendedor las gestiona)
+                        .requestMatchers("/api/v1/ordenes/**").hasAnyRole("ADMIN")
+
+                        // ==========================================
+                        // 4. CLIENTES AUTENTICADOS (Resto)
+                        // ==========================================
+                        // Cualquier otra ruta no especificada arriba requiere al menos estar logueado
+                        .anyRequest().authenticated()
+                )
+                .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authenticationProvider(authenticationProvider)
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
 
-    // BEAN DE CONFIGURACIÓN CORS
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        // Permitir origen del Frontend (Vite)
+        // Ajusta el puerto si tu frontend cambia (ej: 5173 es Vite default)
         configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        
-        // Permitir métodos HTTP necesarios
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        
-        // Permitir Headers estándar y de autenticación
         configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Requested-With", "Accept"));
-        
-        // Permitir credenciales (cookies/tokens)
         configuration.setAllowCredentials(true);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

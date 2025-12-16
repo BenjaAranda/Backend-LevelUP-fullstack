@@ -1,5 +1,6 @@
 package com.duoc.backend_LevelUP.security;
 
+import com.duoc.backend_LevelUP.models.Usuario; // Asegúrate de importar tu modelo Usuario
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;
 import lombok.RequiredArgsConstructor;
@@ -9,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.security.Key;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.function.Function;
 
 @Service
@@ -51,8 +54,24 @@ public class JwtService {
         return extractClaim(token, Claims::getExpiration).before(new Date());
     }
 
+    // --- CAMBIO IMPORTANTE AQUÍ ---
+    // Método principal que llama el Controller
     public String generateToken(UserDetails userDetails) {
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        // Si el userDetails es instancia de tu Usuario, extraemos el rol
+        if (userDetails instanceof Usuario) {
+            Usuario usuario = (Usuario) userDetails;
+            extraClaims.put("role", usuario.getRole().name());
+        }
+
+        return generateToken(extraClaims, userDetails);
+    }
+
+    // Método sobrecargado para construir el token con claims extra
+    public String generateToken(Map<String, Object> extraClaims, UserDetails userDetails) {
         return Jwts.builder()
+                .setClaims(extraClaims) // Agregamos los datos extra (rol)
                 .setSubject(userDetails.getUsername())
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + jwtExpirationMs))
