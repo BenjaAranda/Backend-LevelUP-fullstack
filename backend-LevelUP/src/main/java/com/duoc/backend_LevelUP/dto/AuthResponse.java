@@ -11,5 +11,5 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class AuthResponse {
     private String token;
-    private String role; // Para que el frontend sepa si es ADMIN o CLIENTE
+    private String role; // El frontend usará esto para saber si redirigir al dashboard admin
 }
