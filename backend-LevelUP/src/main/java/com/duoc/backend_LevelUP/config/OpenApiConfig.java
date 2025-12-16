@@ -12,11 +12,16 @@ import io.swagger.v3.oas.annotations.servers.Server;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@OpenAPIDefinition(info = @Info(contact = @Contact(name = "Equipo Level-Up", email = "contacto@levelup.cl", url = "https://levelup-gamer.cl"), description = "Documentación de la API REST para el E-Commerce Level-Up Gamer.", title = "Level-Up Gamer API", version = "1.0", license = @License(name = "Licencia Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0"), termsOfService = "Términos de servicio"), servers = {
-                @Server(description = "Servidor Local", url = "http://localhost:8080")
-}, security = {
+@OpenAPIDefinition(info = @Info(contact = @Contact(name = "Equipo Level-Up", email = "contacto@levelup-gamer.cl", url = "https://levelup-gamer.cl"), description = "API REST oficial para el E-Commerce Level-Up Gamer. "
+        +
+        "Provee endpoints para gestión de productos, autenticación de usuarios y procesamiento de ventas.", title = "Level-Up Gamer API", version = "1.0.0", license = @License(name = "Licencia Apache 2.0", url = "https://www.apache.org/licenses/LICENSE-2.0"), termsOfService = "https://levelup-gamer.cl/terminos"), servers = {
+                @Server(description = "Servidor de Desarrollo Local", url = "http://localhost:8080"),
+                @Server(description = "Servidor de Producción (AWS)", url = "https://tu-api-aws.com" // Opcional, solo
+                                                                                                     // ilustrativo
+                )
+        }, security = {
                 @SecurityRequirement(name = "bearerAuth")
-})
-@SecurityScheme(name = "bearerAuth", description = "Autenticación JWT. Ingrese el token en el formato: Bearer <token>", scheme = "bearer", type = SecuritySchemeType.HTTP, bearerFormat = "JWT", in = SecuritySchemeIn.HEADER)
+        })
+@SecurityScheme(name = "bearerAuth", description = "Autenticación JWT. Ingrese el token obtenido en /auth/login", scheme = "bearer", type = SecuritySchemeType.HTTP, bearerFormat = "JWT", in = SecuritySchemeIn.HEADER)
 public class OpenApiConfig {
 }
