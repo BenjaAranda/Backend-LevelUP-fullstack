@@ -21,12 +21,14 @@ public class DetalleBoleta {
     private Integer cantidad;
     private Integer precioUnitario;
 
+    // --- CORRECCIÓN: Única columna "producto_id" ---
     @ManyToOne
-    @JoinColumn(name = "producto_id")
+    @JoinColumn(name = "producto_id", nullable = false)
     private Producto producto;
 
+    // --- CORRECCIÓN: Única columna "boleta_id" ---
     @ManyToOne
-    @JoinColumn(name = "boleta_id")
-    @JsonIgnore // Evita ciclos infinitos al convertir a JSON
+    @JoinColumn(name = "boleta_id", nullable = false)
+    @JsonIgnore // Evitamos ciclo infinito al convertir a JSON
     private Boleta boleta;
 }
