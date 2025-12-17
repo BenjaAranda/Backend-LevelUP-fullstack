@@ -13,6 +13,14 @@ import java.util.List;
 public class VentaRequest {
     private String usuarioEmail;
     private Integer totalVenta;
+
+    // --- NUEVO: Datos de Envío ---
+    private String calle;
+    private String numero;
+    private String departamento; // Opcional
+    private String comuna;
+    private String region;
+    private String telefono;
+
     private List<ItemRequest> items;
-    // Puedes agregar dirección aquí si lo necesitas guardar en la boleta
 }

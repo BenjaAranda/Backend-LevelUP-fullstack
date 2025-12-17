@@ -24,11 +24,29 @@ public class Boleta {
     @Column(nullable = false)
     private Integer total;
 
-    @ManyToOne
-    @JoinColumn(name = "usuario_id")
+    @Enumerated(EnumType.STRING)
+    private EstadoPedido estado;
+
+    // Datos de Envío
+    private String direccion;
+    private String comuna;
+    private String region;
+    private String telefonoContacto;
+
+    // --- CORRECCIÓN DE REDUNDANCIA ---
+    // Usamos explícitamente "usuario_id" como la única columna para la llave
+    // foránea.
+    @ManyToOne(fetch = FetchType.EAGER) // Eager para que cargue el usuario al pedir la boleta
+    @JoinColumn(name = "usuario_id", nullable = false)
     private Usuario usuario;
 
-    // Relación con el detalle
     @OneToMany(mappedBy = "boleta", cascade = CascadeType.ALL)
     private List<DetalleBoleta> detalles;
+
+    public enum EstadoPedido {
+        PENDIENTE,
+        EN_PREPARACION,
+        ENVIADO,
+        ENTREGADO
+    }
 }

@@ -27,68 +27,68 @@ public class VentaController {
     private final UsuarioRepository usuarioRepository;
     private final ProductoRepository productoRepository;
 
-    // --- 1. CREAR VENTA (CHECKOUT) ---
     @PostMapping
-    @Transactional // Importante: Si falla algo, no se guarda nada ni se descuenta stock
+    @Transactional
     public ResponseEntity<?> crearVenta(@RequestBody VentaRequest request) {
 
-        // A. Validar Usuario
         Usuario usuario = usuarioRepository.findByEmail(request.getUsuarioEmail())
                 .orElseThrow(() -> new RuntimeException("Usuario no encontrado: " + request.getUsuarioEmail()));
 
-        // B. Crear Cabecera de Boleta
+        // Construir la dirección completa en un string (o usar campos separados si
+        // prefieres)
+        String direccionCompleta = request.getCalle() + " " + request.getNumero();
+        if (request.getDepartamento() != null && !request.getDepartamento().isEmpty()) {
+            direccionCompleta += ", Depto " + request.getDepartamento();
+        }
+
         Boleta boleta = Boleta.builder()
                 .fecha(LocalDateTime.now())
-                .total(0) // Lo calcularemos real abajo para seguridad
+                .total(0)
                 .usuario(usuario)
-                .detalles(new ArrayList<>()) // Lista vacía inicial
+                // --- NUEVO: Guardar datos de envío y estado ---
+                .direccion(direccionCompleta)
+                .comuna(request.getComuna())
+                .region(request.getRegion())
+                .telefonoContacto(request.getTelefono())
+                .estado(Boleta.EstadoPedido.PENDIENTE) // Estado inicial por defecto
+                .detalles(new ArrayList<>())
                 .build();
 
-        // C. Procesar Items
         int totalCalculado = 0;
 
         for (var item : request.getItems()) {
-            // Buscar producto real en BD
             Producto producto = productoRepository.findByCodigo(item.getProductoCodigo())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado: " + item.getProductoCodigo()));
 
-            // Validar Stock
             if (producto.getStock() < item.getCantidad()) {
                 return ResponseEntity.badRequest().body("Stock insuficiente para: " + producto.getNombre());
             }
 
-            // Descontar Stock
             producto.setStock(producto.getStock() - item.getCantidad());
             productoRepository.save(producto);
 
-            // Crear Detalle
             DetalleBoleta detalle = DetalleBoleta.builder()
                     .boleta(boleta)
                     .producto(producto)
                     .cantidad(item.getCantidad())
-                    .precioUnitario(producto.getPrecio()) // Usamos precio de BD, no del frontend (seguridad)
+                    .precioUnitario(producto.getPrecio())
                     .build();
 
-            // Agregar a la lista y sumar al total
             boleta.getDetalles().add(detalle);
             totalCalculado += (producto.getPrecio() * item.getCantidad());
         }
 
-        // D. Guardar Boleta Final con Total Real
         boleta.setTotal(totalCalculado);
         Boleta boletaGuardada = boletaRepository.save(boleta);
 
-        // Retornamos la boleta completa (con ID generado)
         return ResponseEntity.ok(boletaGuardada);
     }
 
-    // --- 2. OBTENER HISTORIAL DE UN USUARIO ---
     @GetMapping("/mis-compras")
     public ResponseEntity<List<Boleta>> getMisCompras(@RequestParam String email) {
         return ResponseEntity.ok(boletaRepository.findByUsuarioEmail(email));
     }
 
-    // --- 3. OBTENER UNA BOLETA POR ID (Para la pantalla de éxito) ---
     @GetMapping("/{id}")
     public ResponseEntity<Boleta> getBoletaById(@PathVariable Long id) {
         return boletaRepository.findById(id)
