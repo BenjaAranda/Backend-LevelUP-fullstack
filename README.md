@@ -38,7 +38,7 @@ La API usa el puerto `8080`. La interfaz de Swagger está disponible en `http://
 
 ## Configuración segura
 
-Configura la conexión a PostgreSQL y la clave JWT para tu propio entorno antes de ejecutar la aplicación. No publiques contraseñas ni secretos en `application.properties`; utiliza variables de entorno o un archivo local excluido de Git.
+Configura `DB_URL`, `DB_USER`, `DB_PASSWORD` y `JWT_SECRET` en el entorno antes de ejecutar la aplicación. Usa `backend-LevelUP/.env.example` como referencia; Spring Boot no carga ese archivo automáticamente. No publiques contraseñas ni secretos en `application.properties`.
 
 ## Pruebas
 
